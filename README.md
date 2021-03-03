@@ -1,2 +1,2 @@
 # PSRAM64H
- Spin und PASM-Routinen zur Ansteuerung des PSRAM64H im SQI-Modus
+ Propeller-Chip-Spin und PASM-Routinen zur Ansteuerung des PSRAM64H (8MByte-Sram)im SQI-Mode
