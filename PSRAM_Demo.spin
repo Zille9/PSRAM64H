@@ -88,7 +88,7 @@ PUB Main|adr,putbyte,getbyte,fails,i
 
     Ser.str(string("RAM-Schreib-Lese-Test abgeschlossen",13))
     ser.tx(13)
-    Ser.str(string("RAM von $2000-$4000 mit dem Wert $56 fuellen...",13))
+    Ser.str(string("RAM von $2000-$3FFF mit dem Wert $56 fuellen...",13))
     ser.str(string("Weiter -> Taste",13))
     repeat while ser.rx==0
     psram.ram_fill($2000,$1FFF,$56)
@@ -99,10 +99,10 @@ PUB Main|adr,putbyte,getbyte,fails,i
            ser.hex(getbyte,2)
            ser.tx(13)
     ser.str(string("RAM fuellen beendet",13))
-    Ser.str(string("RAM Bereich kopieren von $4000-$4FFF nach $1000-$1FFF",13))
+    Ser.str(string("RAM Bereich kopieren von $2000-$2FFF nach $1000-$1FFF",13))
     ser.str(string("Weiter -> Taste",13))
     repeat while ser.rx==0
-    psram.ram_copy($4000,$1000,$FFF)
+    psram.ram_copy($2000,$1000,$FFF)
     repeat adr from $1000 to $1FFF
            Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
            ser.hex(adr,4)

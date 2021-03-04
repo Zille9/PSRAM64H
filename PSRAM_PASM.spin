@@ -169,7 +169,9 @@ cog_copy
 loop_copy               call    #sub_peek        'Wert aus Quellspeicher lesen
                         mov     _val,_tmp        'peekwert nach _val kopieren
                         mov     _adr,_REGA       'zieladresse nach _adr
+                        call    #sub_pokeadr     'adresse setzen
                         call    #sub_poke        'wert in Zielspeicher schreiben
+                        mov     outa,DESELECT    'CS=1 Ram deselektieren
                         add     _REGA,#1         'Zieladresse erhöhen
                         call    #moving          'Quelladresse erhöhen und nach _adr zurückschreiben
                         djnz    _count,#loop_copy 'counter runterzählen
@@ -180,17 +182,35 @@ loop_copy               call    #sub_peek        'Wert aus Quellspeicher lesen
 '***********************Byte, Word oder Long lesen*************************************
 cog_read
                         call    #sub_peek
-
                         cmp     _val,#JOB_PEEK wz 'wenn nur peek hier aussteigen
               if_z      jmp     #cog_subpeek
 
+
 '************************Byte,Word oder Long schreiben*********************************
 cog_write
+                        mov     _RegA,_val      ' wert merken
+                        mov     _RegB,#8        ' shiftwert
+                        mov     _RegC,#3        ' Zaehlerschleifenwert
+
+                        call    #sub_pokeadr
                         call    #sub_poke
 
                         cmp     _count,#JOB_POKE wz 'wenn nur poke hier aussteigen
               if_z      jmp     #cog_ready
 
+loop_wrlong             mov     _val,_RegA
+                        shr     _val,_RegB      'wert>>8
+                        add     _RegB,#8        'shiftwert um 8 erhoehen
+
+                        call    #moving
+                        call    #sub_poke
+
+                        cmp     _count,#JOB_WRWORD wz 'wenn wrword hier aussteigen
+              if_z      jmp     #cog_ready
+
+                        djnz    _RegC,#loop_wrlong
+
+                        jmp     #cog_ready
 '**************************************************************************************
 
 moving                  add     _ftemp,#1        'adresse+1
@@ -200,31 +220,18 @@ moving_ret              ret
 
 '************************Ram-Bereich mit einem Wert füllen*****************************
 
-cog_fill                mov     _val,_tmpval    ' Kopie von _val zurückschreiben
-                        mov     _tmp,_val               'kopie von _val
-                        mov     outa,_BUS_INIT          'all de-selected
-                        mov     dira,_DIR_OUT           'S0-S3 als Output für Commando, Clock und CS=0 ->Ram aktiv
-                        mov     outa,_COM38_A           '%0011 Befehl $38
-                        call    #CLOCK
-                        mov     outa,_COM38_B           '%1000
-                        call    #CLOCK
-                        call    #setadr
-fill_loop               and     _tmp,#$F0               'nur die linken 4Bit
-                        shl     _tmp,#4                 '4bit nach links in Position 11..8 schieben
-                        mov     outa,_tmp
-                        call    #CLOCK
-                        and     _val,#$F
-                        shl     _val,#8                 '8bit nach links in Position 11..8 schieben
-                        mov     outa,_val
-                        call    #CLOCK
-                        call    #moving
+cog_fill                mov     _val,_tmpval            ' Kopie von _val zurückschreiben
+                        call    #sub_pokeadr
+
+fill_loop               mov     _val,_tmpval            ' Kopie von _val zurückschreiben
+                        call    #sub_poke
                         djnz    _count, #fill_loop      'nächste runde bis _count 0
                         mov     outa,DESELECT           'CS=1 ->Ram inaktiv
                         jmp     #cog_ready
 
 '*****************************ein Byte in den RAM schreiben****************************
 
-sub_poke                mov     _tmp,_val               'kopie von _val
+sub_pokeadr
                         mov     outa,_BUS_INIT          'all de-selected
                         mov     dira,_DIR_OUT           'S0-S3 als Output für Commando, Clock und CS=0 ->Ram aktiv
                         mov     outa,_COM38_A           '%0011 Befehl $38
@@ -232,6 +239,9 @@ sub_poke                mov     _tmp,_val               'kopie von _val
                         mov     outa,_COM38_B           '%1000
                         call    #CLOCK
                         call    #setadr
+sub_pokeadr_ret         ret
+
+sub_poke                mov     _tmp,_val               'kopie von _val
                         and     _tmp,#$F0               'nur die linken 4Bit
                         shl     _tmp,#4                 '4bit nach links in Position 11..8 schieben
                         mov     outa,_tmp
@@ -240,7 +250,7 @@ sub_poke                mov     _tmp,_val               'kopie von _val
                         shl     _val,#8                 '8bit nach links in Position 11..8 schieben
                         mov     outa,_val
                         call    #CLOCK
-                        mov     outa,DESELECT           'CS=1 ->Ram inaktiv
+
 sub_poke_ret            ret
 
 
@@ -381,5 +391,6 @@ _tmp2         res 1
 _ftemp        res 1
 _regA         res 1
 _tmpval       res 1
-
+_REGB         res 1
+_REGC         res 1
                                                        fit 496
