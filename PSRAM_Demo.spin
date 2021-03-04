@@ -15,6 +15,7 @@ Logbuch:
 04-03-2021      -Spin und PASM-Routinen funktionsfähig aber noch nicht optimiert
                 -momentan nur eine Pinconfiguration im PASM
                 -die Funktionen Byte-Read, Byte-Write, Ram-Fill, Ram-Copy, Ram-Keep(für Trios Basic) sind vorhanden
+
 }}
 
 con
@@ -25,7 +26,7 @@ DB_IN           = %00000000_00000000_00110000_00000000  'maske: dbus-eingabe
 DB_OUT          = %00000000_00000000_00111111_00000000  'maske: dbus-ausgabe
 
 '##################################################################################
-'# HINWEIS:die PASM-Routinen sind nur für die folgende Pingonfiguration erstellt !#
+'# HINWEIS:die PASM-Routinen sind nur für die folgende Pinkonfiguration erstellt !#
 '##################################################################################
 CS      =12       'CS 1
 SIO0    =8        'MISO 5

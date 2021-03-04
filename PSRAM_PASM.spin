@@ -313,7 +313,6 @@ sub_peek
                         add     _tmp,_tmp2
                         shr     _tmp,#8
                         call    #CLOCK
-                        'mov     outa,DESELECT           'CS=1 ->Ram inaktiv
 
 sub_peek_ret            ret
 
@@ -378,7 +377,7 @@ SPI2SQI                 mov     outa,_SIO0_Out0           'SIO0=0 CS=0
                         jmp     #cog_ready
 
 '**************************************************************************************
-CLOCK                   or      outa,ClkMask            ' Toggle clock
+CLOCK                   or      outa,ClkPin            ' Toggle clock
                         xor     outa,ClkPin
 
 CLOCK_ret               ret
@@ -396,14 +395,13 @@ _SIO0_Out1    long %00000000_00000000_00000001_00000000
 
 
 
-_COM38_A      long %00000000_00000000_00000011_00000000
-_COM38_B      long %00000000_00000000_00001000_00000000
+_COM38_A      long %00000000_00000000_00000011_00000000 'Kommando schreiben MSB
+_COM38_B      long %00000000_00000000_00001000_00000000 'Kommando schreiben LSB
 
-_COMEB        long %00000000_00000000_00001110_00000000
-_COM0B        long %00000000_00000000_00001011_00000000
+_COMEB        long %00000000_00000000_00001110_00000000 'Kommando lesen MSB
+_COM0B        long %00000000_00000000_00001011_00000000 'Kommando lesen LSB
 
 CLKPIN        long |< 13
-ClkMask       long %00000000_00000000_00100000_00000000
 
 ANDMASK       long %00000000_00000000_00001111_00000000
 DESELECT      long %00000000_00000000_00010000_00000000
