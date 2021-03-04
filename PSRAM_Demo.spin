@@ -65,12 +65,12 @@ PUB Main|adr,putbyte,getbyte,fails,i
     psram.ram_SQI                                                  'in den SQI (Quad) Modus schalten
     i:=0
     ser.str(string("PSRAM-Test",13))
+    ser.str(string("PSRAM loeschen $800000 bytes...",13)) 'ca.8sek.
+    psram.ram_fill($0,$800000,0)
+
     ser.str(string("Weiter -> Taste",13))
-    psram.wr_value($0,$30000,psram#JOB_WRLONG)
-    ser.hex(psram
-    ser.str(string("OK>"))
-    'repeat while ser.rx==0
-    repeat
+    repeat while ser.rx==0
+
     repeat adr from $0 to $1FFF
            psram.wr_value(adr,PutByte,psram#Job_Poke)
            Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
