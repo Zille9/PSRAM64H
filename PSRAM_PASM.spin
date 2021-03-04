@@ -152,13 +152,15 @@ cog_subpeek             add     _ptr,#4         ' Ergebnis nach Werte übergeben
 
 '**************************** eine Zeile überspringen (testet auf 0)***************
 
-cog_keeping             call    #sub_peek
+cog_keeping             call    #sub_peekadr     'Adresse setzen
+keeping_loop            call    #sub_peek        'Wert aus Ram lesen
                         cmp     _tmp,#0   wz     'Wert 0?
                 if_z    jmp     #cog_keepout     'dann raus
-                        call    #moving          'Adresse erhöhen
-                        jmp     #cog_keeping     'weiter
+                        call    #moving          'Adresse erhöhen (als Rückgabewert gebraucht)
+                        jmp     #keeping_loop    'weiter
 
 cog_keepout             mov     _tmp,_ftemp      'Adresse nach tmp
+                        mov     outa,DESELECT    'CS=1 ->Ram inaktiv
                         jmp     #cog_subpeek
 
 '************************Ram-Bereich kopieren**************************************
@@ -166,12 +168,14 @@ cog_keepout             mov     _tmp,_ftemp      'Adresse nach tmp
 cog_copy
                         mov     _REGA,_val       'zieladresse merken
 
-loop_copy               call    #sub_peek        'Wert aus Quellspeicher lesen
+loop_copy               call    #sub_peekadr
+                        call    #sub_peek        'Wert aus Quellspeicher lesen
+                        mov     outa,DESELECT    'CS=1 ->Ram inaktiv
                         mov     _val,_tmp        'peekwert nach _val kopieren
                         mov     _adr,_REGA       'zieladresse nach _adr
                         call    #sub_pokeadr     'adresse setzen
                         call    #sub_poke        'wert in Zielspeicher schreiben
-                        mov     outa,DESELECT    'CS=1 Ram deselektieren
+                        mov     outa,DESELECT    'CS=1 Ram inaktiv
                         add     _REGA,#1         'Zieladresse erhöhen
                         call    #moving          'Quelladresse erhöhen und nach _adr zurückschreiben
                         djnz    _count,#loop_copy 'counter runterzählen
@@ -181,10 +185,31 @@ loop_copy               call    #sub_peek        'Wert aus Quellspeicher lesen
 
 '***********************Byte, Word oder Long lesen*************************************
 cog_read
+                        mov     _RegA,#8        ' shiftwert
+                        mov     _RegC,#3        ' Schleifenzaehler
+
+                        call    #sub_peekadr
                         call    #sub_peek
                         cmp     _val,#JOB_PEEK wz 'wenn nur peek hier aussteigen
               if_z      jmp     #cog_subpeek
 
+                        call    #rd_wr
+
+loop_rd                 call    #sub_peek
+                        shl     _tmp,_RegA
+                        add     _tmp,_RegB
+                        call    #rd_wr
+
+                        cmp     _val,#JOB_RDWORD wz 'wenn rdword, dann hier raus
+              if_z      jmp     #cog_subrdword
+
+                        add     _regA,#8
+                        djnz    _RegC,#loop_rd
+
+cog_subrdword           add     _ptr,#4         ' next param
+                        wrlong  _RegB,_ptr
+
+                        jmp     #cog_ready
 
 '************************Byte,Word oder Long schreiben*********************************
 cog_write
@@ -211,11 +236,14 @@ loop_wrlong             mov     _val,_RegA
                         djnz    _RegC,#loop_wrlong
 
                         jmp     #cog_ready
+
 '**************************************************************************************
 
+rd_wr                   mov     _RegB,_tmp
 moving                  add     _ftemp,#1        'adresse+1
                         mov     _adr,_ftemp      'adresse zurueckschreiben
-moving_ret              ret
+moving_ret
+rd_wr_ret               ret
 
 
 '************************Ram-Bereich mit einem Wert füllen*****************************
@@ -256,7 +284,7 @@ sub_poke_ret            ret
 
 '*****************************Ein Byte aus dem Ram lesen*******************************
 
-sub_peek
+sub_peekadr
                         ' BUS
                         mov     outa,_BUS_INIT          'all de-selected
                         mov     dira,_DIR_OUT           'S0-S3 als Output für Commando, Clock und CS=0 ->Ram aktiv
@@ -272,6 +300,8 @@ sub_peek
                         call    #CLOCK
                         call    #CLOCK
                         call    #CLOCK
+sub_peekadr_ret         ret
+sub_peek
                         mov     _tmp,#0                 '_tmp löschen
                         mov     _tmp2,#0                '_tmp2 löschen
                         mov     _tmp,ina
@@ -283,8 +313,7 @@ sub_peek
                         add     _tmp,_tmp2
                         shr     _tmp,#8
                         call    #CLOCK
-                        mov     outa,DESELECT           'CS=1 ->Ram inaktiv
-
+                        'mov     outa,DESELECT           'CS=1 ->Ram inaktiv
 
 sub_peek_ret            ret
 

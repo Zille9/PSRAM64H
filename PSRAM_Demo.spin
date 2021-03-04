@@ -112,8 +112,20 @@ PUB Main|adr,putbyte,getbyte,fails,i
     ser.str(string("Alle Tests abgeschlossen !",13))
     repeat
 
+obj
+{{
+Ram-Funktionen:
 
+psram.ram_fill(Adresse,Anzahl,Wert)                     'Ram-Bereich füllen mit Wert -> die 8MB des Chips werden in ca.7sek gefüllt
+psram.ram_copy(Quelle,Ziel,Anzahl)                      'Ram Bereich kopieren
+Wert:=psram.rd_value(Adresse,psram#JOB_PEEK)            'Byte lesen
+Wert:=psram.rd_value(Adresse,psram#JOB_RDWORD)          'Word lesen
+Wert:=psram.rd_value(Adresse,psram#JOB_RDLONG)          'Long lesen
+psram.wr_value(Adresse,Wert,psram#Job_Poke)             'Byte schreiben
+psram.wr_value(Adresse,Wert,psram#Job_WRWORD)           'Word schreiben
+psram.wr_value(Adresse,Wert,psram#Job_WRLONG)           'Long schreiben
 
+}}
 
 con'############################################# SPIN-Routinen ohne PASM #################################################################################
 {{
