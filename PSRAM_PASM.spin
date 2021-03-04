@@ -127,11 +127,11 @@ cog_loop                rdlong  _job,par wz     ' get job id
                         cmp     _job,#JOB_COPY wz
               if_z      jmp     #cog_copy
 
-              if_z      cmp     _job,#JOB_KEEP wz
-                        jmp     #cog_keeping
+                        cmp     _job,#JOB_KEEP wz
+              if_z      jmp     #cog_keeping
 
-              if_z      cmp    _job,#JOB_SQI wz
-                        jmp     #SPI2SQI                'Set to SQI-Mode
+                        cmp    _job,#JOB_SQI wz
+              if_z      jmp     #SPI2SQI                'Set to SQI-Mode
                         jmp     #cog_loop
 
 
@@ -175,13 +175,7 @@ loop_copy               call    #sub_peek        'Wert aus Quellspeicher lesen
                         djnz    _count,#loop_copy 'counter runterzählen
                         jmp     #cog_ready        'raus
 
-'************************Ram-Bereich mit einem Wert füllen*****************************
 
-cog_fill                mov     _val,_tmpval    ' Kopie von _val zurückschreiben
-                        call    #sub_poke       ' schreiben
-                        call    #moving
-                        djnz    _count, #cog_fill
-                        jmp     #cog_ready
 
 '***********************Byte, Word oder Long lesen*************************************
 cog_read
@@ -202,6 +196,31 @@ cog_write
 moving                  add     _ftemp,#1        'adresse+1
                         mov     _adr,_ftemp      'adresse zurueckschreiben
 moving_ret              ret
+
+
+'************************Ram-Bereich mit einem Wert füllen*****************************
+
+cog_fill                mov     _val,_tmpval    ' Kopie von _val zurückschreiben
+                        mov     _tmp,_val               'kopie von _val
+                        mov     outa,_BUS_INIT          'all de-selected
+                        mov     dira,_DIR_OUT           'S0-S3 als Output für Commando, Clock und CS=0 ->Ram aktiv
+                        mov     outa,_COM38_A           '%0011 Befehl $38
+                        call    #CLOCK
+                        mov     outa,_COM38_B           '%1000
+                        call    #CLOCK
+                        call    #setadr
+fill_loop               and     _tmp,#$F0               'nur die linken 4Bit
+                        shl     _tmp,#4                 '4bit nach links in Position 11..8 schieben
+                        mov     outa,_tmp
+                        call    #CLOCK
+                        and     _val,#$F
+                        shl     _val,#8                 '8bit nach links in Position 11..8 schieben
+                        mov     outa,_val
+                        call    #CLOCK
+                        call    #moving
+                        djnz    _count, #fill_loop      'nächste runde bis _count 0
+                        mov     outa,DESELECT           'CS=1 ->Ram inaktiv
+                        jmp     #cog_ready
 
 '*****************************ein Byte in den RAM schreiben****************************
 
@@ -333,8 +352,8 @@ _DIR_IN       long %00000000_00000000_00110000_00000000
 _BUS_INIT     long %00000000_00000000_00000000_00000000
 
 _SIO0         long %00000000_00000000_00110001_00000000
-_SIO0_Out0    long %00000000_00000000_00010000_00000000
-_SIO0_Out1    long %00000000_00000000_00010001_00000000
+_SIO0_Out0    long %00000000_00000000_00000000_00000000
+_SIO0_Out1    long %00000000_00000000_00000001_00000000
 
 
 
