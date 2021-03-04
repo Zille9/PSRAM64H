@@ -356,7 +356,7 @@ setadr                  ' ADR 24 bit
                         call    #CLOCK
 setadr_ret              ret
 
-'############################ Umschalten von SPI nach SQI (Quad-Mode) ##################### -> funktioniert
+'############################ Umschalten von SPI nach SQI (Quad-Mode) #####################
 
 SPI2SQI                 mov     outa,_SIO0_Out0           'SIO0=0 CS=0
                         mov     dira,_SIO0                'SPI zu SQI Befehl $35 %0011_0101
