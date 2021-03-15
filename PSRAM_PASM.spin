@@ -13,16 +13,16 @@ CON
 
 _CLKMODE     = XTAL1 + PLL16X
 _XINFREQ     = 5_000_000
-DB_IN           = %00000000_00000000_00110000_00000000  'maske: dbus-eingabe
+DB_IN           = %00000000_00000000_00000000_00000000  'maske: dbus-eingabe
 
-CS      =12       'CS 1
+CS      =0       'CS 1
 SIO0    =8        'MISO 5
 SIO1    =9        '2
 SIO2    =10       '3
 SIO3    =11       'MOSI 7
-CLK     =13       'CLK 6
+CLK     =1       'CLK 6
 
-#0,JOB_NONE,JOB_POKE,JOB_PEEK,JOB_FILL,JOB_WRLONG,JOB_RDLONG,JOB_WRWORD,JOB_RDWORD,DO_READ,DO_WRITE,JOB_COPY,JOB_KEEP,JOB_SQI
+#0,JOB_NONE,JOB_POKE,JOB_PEEK,JOB_FILL,JOB_WRLONG,JOB_RDLONG,JOB_WRWORD,JOB_RDWORD,DO_READ,DO_WRITE,JOB_COPY,JOB_KEEP,JOB_SQI,JOB_RESET
 
 VAR
   long CogNr
@@ -88,7 +88,14 @@ PUB ram_sqi
     JobNr:=Job_SQI
     repeat until JobNr == JOB_NONE
     dira:=DB_IN
-
+PUB ram_reset
+    address:=0
+    Value:=0
+    Anzahl:=0
+    dira  := 0
+    JobNr:=Job_RESET
+    repeat until JobNr == JOB_NONE
+    dira:=DB_IN
 Pub Start
 
   CogNr := cognew(@cog_loop,@JobNr)
@@ -132,6 +139,9 @@ cog_loop                rdlong  _job,par wz     ' get job id
 
                         cmp    _job,#JOB_SQI wz
               if_z      jmp     #SPI2SQI                'Set to SQI-Mode
+
+                        cmp    _job,#JOB_RESET wz
+              if_z      jmp     #SPIRESET                'Reset-Befehl
                         jmp     #cog_loop
 
 
@@ -375,6 +385,18 @@ SPI2SQI                 mov     outa,_SIO0_Out0           'SIO0=0 CS=0
                         call    #CLOCK
                         mov     dira,_DIR_IN
                         jmp     #cog_ready
+'############################ Reset-Kommando, Chip wird in SPI-Modus versetzt #############
+
+SPIRESET                mov     outa,_RESET_A             '$66 Kommando Reset folgt
+                        mov     dira,_DIR_OUT             'S0-S3 als Output für Commando, Clock und CS=0 ->Ram aktiv
+                        call    #CLOCK
+                        call    #CLOCK
+                        mov     outa,DESELECT             'das eigentliche Reset-Kommando $99
+                        mov     outa,_RESET_B
+                        call    #CLOCK
+                        call    #CLOCK
+                        mov     outa,DESELECT
+                        jmp     #cog_ready
 
 '**************************************************************************************
 CLOCK                   or      outa,ClkPin            ' Toggle clock
@@ -385,14 +407,16 @@ CLOCK_ret               ret
 
 
 
-_DIR_OUT      long %00000000_00000000_00111111_00000000
-_DIR_IN       long %00000000_00000000_00110000_00000000
+_DIR_OUT      long %00000000_00000000_00001111_00000011
+_DIR_IN       long %00000000_00000000_00000000_00000011
 _BUS_INIT     long %00000000_00000000_00000000_00000000
 
-_SIO0         long %00000000_00000000_00110001_00000000
+_SIO0         long %00000000_00000000_00000001_00000011
 _SIO0_Out0    long %00000000_00000000_00000000_00000000
 _SIO0_Out1    long %00000000_00000000_00000001_00000000
 
+_RESET_A      long %00000000_00000000_00000110_00000000 'Kommando Reset folgt $66
+_RESET_B      long %00000000_00000000_00001001_00000000 'Kommando Reset $99
 
 
 _COM38_A      long %00000000_00000000_00000011_00000000 'Kommando schreiben MSB
@@ -401,10 +425,10 @@ _COM38_B      long %00000000_00000000_00001000_00000000 'Kommando schreiben LSB
 _COMEB        long %00000000_00000000_00001110_00000000 'Kommando lesen MSB
 _COM0B        long %00000000_00000000_00001011_00000000 'Kommando lesen LSB
 
-CLKPIN        long |< 13
+CLKPIN        long |< 1
 
 ANDMASK       long %00000000_00000000_00001111_00000000
-DESELECT      long %00000000_00000000_00010000_00000000
+DESELECT      long %00000000_00000000_00000000_00000001
 
 
 
