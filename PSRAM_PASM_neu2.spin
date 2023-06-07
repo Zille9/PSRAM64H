@@ -78,7 +78,7 @@ pub ram_keep(adr):w
     w := Werte+1
 
 PUB ram_sqi
-    dira  := 0
+    dira:=0
     JobNr:=Job_SQI
     repeat until JobNr == JOB_NONE
     dira:=DB_IN
@@ -181,8 +181,6 @@ loop_copy               call    #sub_peekadr
                         call    #moving          'Quelladresse erhöhen und nach _adr zurückschreiben
                         djnz    _count,#loop_copy 'counter runterzählen
                         jmp     #cog_ready        'raus
-
-
 
 '***********************Byte, Word oder Long lesen*************************************
 cog_read
@@ -320,42 +318,19 @@ sub_peek_ret            ret
 '******************************RAM-Adresse setzen***************************************
 
 setadr                  ' ADR 24 bit
-
-                        mov     _tmp2,_adr              '23-20   Kopie von _adr machen
-                        shr     _tmp2,#12               '12Bits nach rechts schieben 23..20->11..8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren
-                        mov     outa,_tmp2              'Bit 23-20 ausgeben
+                        mov     _LOOP,#6                'Schleifenzähler
+                        mov     _Shift,#20              'Shiftwert
+shiftloop
+                        mov     _tmp2,_adr              'adr nach tmp2
+                        shr     _tmp2,_Shift            'höchste 4 bit 1(23-20).2(19..16).3(15..12).4(11..8).5(7..4).6(3..0)
+                        and     _tmp2,#$F               'nur die untersten 4 bit
+                        shl     _tmp2,#8                'in die richtige Pinposition schieben (SIO 0-Pin)
+                        mov     outa,_tmp2              'ausgeben
                         call    #CLOCK
-
-                        mov     _tmp2,_adr              '19-16
-                        shr     _tmp2,#8                '8Bits nach rechts schieben 19..16 ->11..8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren
-                        mov     outa,_tmp2              'Bit 19-16 ausgeben
-                        call    #CLOCK
-
-                        mov     _tmp2,_adr              '15-12
-                        shr     _tmp2,#4                '4Bits nach rechts chieben 15..12 ->11..8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren
-                        mov     outa,_tmp2              'Bit 15-12 ausgeben
-                        call    #CLOCK
-
-                        mov     _tmp2,_adr              '11-8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren 11..8 = 11..8
-                        mov     outa,_tmp2              'Bit 11-8 ausgeben
-                        call    #CLOCK
-
-                        mov     _tmp2,_adr              '7-4
-                        shl     _tmp2,#4                '4bits nach links schieben 7..4 ->11..8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren
-                        mov     outa,_tmp2              'Bit 7-4 ausgeben
-                        call    #CLOCK
-
-                        mov     _tmp2,_adr              '3-0
-                        shl     _tmp2,#8                '8Bits nach links schieben 3..0 ->11..8
-                        and     _tmp2,ANDMASK           'SIO3..SIO0 ausmaskieren
-                        mov     outa,_tmp2              'Bit 3-0 ausgeben
-                        call    #CLOCK
+                        sub     _Shift,#4               'Schiftwert um -4 reduzieren
+                        djnz    _LOOP, #shiftloop
 setadr_ret              ret
+
 
 '############################ Umschalten von SPI nach SQI (Quad-Mode) #####################
 
@@ -397,12 +372,11 @@ CLOCK_ret               ret
 
 
 
-
-_DIR_OUT      long %00000000_00000000_00001111_00000011
-_DIR_IN       long %00000000_00000000_00000000_00000011
+_DIR_OUT      long %00000000_00000000_11111111_00000011
+_DIR_IN       long %00000000_00000000_11110000_00000011
 _BUS_INIT     long %00000000_00000000_00000000_00000000
 
-_SIO0         long %00000000_00000000_00000001_00000011
+_SIO0         long %00000000_00000000_11110001_00000011
 _SIO0_Out0    long %00000000_00000000_00000000_00000000
 _SIO0_Out1    long %00000000_00000000_00000001_00000000
 
@@ -416,11 +390,9 @@ _COM38_B      long %00000000_00000000_00001000_00000000 'Kommando schreiben LSB
 _COMEB        long %00000000_00000000_00001110_00000000 'Kommando lesen MSB
 _COM0B        long %00000000_00000000_00001011_00000000 'Kommando lesen LSB
 
-CLKPIN        long |< 1
-
+CLKPIN        long |< CLK
 ANDMASK       long %00000000_00000000_00001111_00000000
 DESELECT      long %00000000_00000000_00000000_00000001
-
 
 
 _job          res 1
@@ -435,4 +407,9 @@ _regA         res 1
 _tmpval       res 1
 _REGB         res 1
 _REGC         res 1
+_Shift        res 1             'Shiftwert
+_LOOP         res 1             'Schleifenzähler
+
+
+
                                                        fit 496

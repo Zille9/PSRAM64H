@@ -49,17 +49,17 @@ baud    =57600
                   PSRAM64H        │
                                   │
              ┌────────────────┐   │ 0.1µF
-   P0  ─────┤1 /CS    Vcc   8├───┻────── Vss
-   P9  ─────┤2 SIO1   SIO3  7├────────── P11
-   P10 ─────┤3 SIO2   CLK   6├────────── P1
-          ┌──┤4 GND    SIO0  5├────────── P8
+   P16 ─────┤1 /CS    Vcc   8├───┻────── Vss
+   P9  ─────┤2 S0     SIO3  7├────────── Vss
+   Vss ─────┤3 SIO2   CLK   6├────────── P17
+          ┌──┤4 GND    SI    5├────────── P8
             └────────────────┘
          Vss
-
+DO,CLK,DI,CS
 }}
 
 obj     ser    :"RS232_ComEngine"'"FullDuplexSerialExtended"
-        psram  :"PSRAM_PASM_HIVE"
+        psram  :"23lc1024"'"PSRAM_PASM_HIVE"
         'psram  :"PSRAM_PASM0-6"
 var     byte buffer[$200]
 
@@ -67,10 +67,10 @@ PUB Main|adr,putbyte,getbyte,fails,i,durchlauf
     Dira:=0'DB_IN
     ser.start(31, 30,0,baud)'0, baud)                              'serielle Schnittstelle starten
     waitcnt(clkfreq+cnt)
-    psram.start                                                    'PSRAM-Cog starten
+    psram.start(9,17,8,16)                                                   'PSRAM-Cog starten
     i:=0
-    psram.ram_reset
-    psram.ram_sqi
+    'psram.ram_reset
+    'psram.ram_sqi
     ser.str(string("PSRAM-Test",13))
     putbyte:=0
     durchlauf:=0
@@ -82,12 +82,14 @@ repeat
     Ser.dec(durchlauf)
     ser.tx(13)
     ser.str(string("PSRAM loeschen $400000 bytes...",13)) 'ca.8sek.
-    psram.ram_fill($0,$400000,0)
+    'psram.write(buffer,0,$200)
+    'psram.ram_fill($0,$400000,0)
 
-    repeat adr from $20000 to $2FFFF
-              psram.wr_value(adr,PutByte,psram#Job_Poke)
-'              waitcnt(clkfreq/30+cnt)
-              Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
+    repeat adr from $10000 to $1FFFF
+              psram.write(putbyte,adr,1)
+              'psram.wr_value(adr,PutByte,psram#Job_Poke)
+              'waitcnt(clkfreq/30+cnt)
+              psram.read(Getbyte,adr,1)'psram.rd_value(adr,psram#JOB_PEEK)
 
               if Putbyte<>Getbyte
                  fails++
@@ -109,11 +111,12 @@ repeat
     ser.tx(13)
     Ser.str(string("RAM von $2000-$3FFF mit dem Wert $94 fuellen...",13))
     ser.str(string("Weiter -> Taste",13))
-    'repeat while ser.rx==0
-    'fails:=0
-    psram.ram_fill($2000,$2000,$94)
+    repeat while ser.rx==0
+    fails:=0
+    'psram.ram_fill($2000,$2000,$94)
+    psram.write($94,$2000,$1FFF)
     repeat adr from $2000 to $3FFF
-           Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
+           psram.read(Getbyte,adr,1)'Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
 
            if getbyte<>$94
               fails++
@@ -127,17 +130,17 @@ repeat
     ser.tx(13)
     Ser.str(string("RAM Bereich kopieren von $2000-$2FFF nach $1000-$1FFF",13))
     ser.str(string("Weiter -> Taste",13))
-    'repeat while ser.rx==0
-    psram.ram_copy($2000,$1000,$1000)
-    repeat adr from $1000 to $1FFF
-           Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
+    repeat while ser.rx==0
+    'psram.ram_copy($2000,$1000,$1000)
+    'repeat adr from $1000 to $1FFF
+    '       Getbyte:=psram.rd_value(adr,psram#JOB_PEEK)
 
-           if getbyte<>$94
-              fails++
-              ser.hex(adr,4)
-              ser.tx(32)
-              ser.hex(getbyte,2)
-              ser.tx(13)
+'           if getbyte<>$94
+'              fails++
+'              ser.hex(adr,4)
+'              ser.tx(32)
+'              ser.hex(getbyte,2)
+'              ser.tx(13)
 
     ser.str(string("Alle Tests abgeschlossen !",13))
     ser.str(string("Fehler:"))

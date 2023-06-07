@@ -1,0 +1,17 @@
+[Iamabstprojectfile]
+Iamthemagicnumber=1
+
+[Main]
+SelectedTab=0
+TreePath=\\Mac\Home\Desktop\Hive-Max
+NumSubs=2
+OverrideOptimisation=0
+OptimiseFlags=0
+
+[File1]
+FileName=\\Mac\Home\Documents\GitHub\PSRAM-64\PSRAM64H\PSRAM_Demo.spin
+TopLine=49
+
+[File2]
+FileName=\\Mac\Home\Documents\GitHub\TinyBasic\Lib\PSRAM_PASM_HIVE.spin
+TopLine=1
